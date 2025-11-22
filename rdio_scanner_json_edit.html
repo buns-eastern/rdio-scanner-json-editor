@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Rdio Scanner – Units JSON Editor</title>
+
+<!-- FONT AWESOME -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    background: #141414;
+    color: #e8e8e8;
+    padding: 25px;
+  }
+
+  h2 {
+    margin: 0 0 4px 0;
+    font-size: 26px;
+    color: #fff;
+  }
+
+  .version-text {
+    margin-top: -6px;
+    color: #aaa;
+    font-size: 12px;
+  }
+
+  h3 {
+    margin-top: 0.3rem;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+    font-size: 18px;
+  }
+
+  .row {
+    display: flex;
+    gap: 24px;
+    flex-wrap: wrap;
+    margin-top: 15px;
+  }
+
+  .col {
+    flex: 1 1 350px;
+    min-width: 340px;
+  }
+
+  textarea {
+    width: 100%;
+    height: 260px;
+    background: #111;
+    color: #537ac9;
+    border: 1px solid #333;
+    padding: 10px;
+    font-family: Consolas, monospace;
+    font-size: 13px;
+    border-radius: 4px;
+    box-sizing: border-box;
+  }
+
+  #unitsExtractOutput {
+    width: 100%;
+    height: 260px;
+    background: #111;
+    color: #8fe1ff;
+    border: 1px solid #333;
+    padding: 10px;
+    font-family: Consolas, monospace;
+    font-size: 13px;
+    border-radius: 4px;
+    box-sizing: border-box;
+    margin-top: 8px;
+  }
+
+  select, button {
+    font-size: 14px;
+  }
+
+  select {
+    padding: 6px 10px;
+    margin: 6px 0 10px 0;
+    background: #111;
+    color: #e8e8e8;
+    border: 1px solid #333;
+    border-radius: 4px;
+  }
+
+  button {
+    margin-top: 8px;
+    padding: 8px 14px;
+    border: none;
+    cursor: pointer;
+    background: #2c4866;
+    color: white;
+    border-radius: 4px;
+    transition: 0.15s;
+  }
+
+  button:hover {
+    background: #0f5ea8;
+  }
+
+  #openFileBtn {
+    background: #444;
+  }
+  #openFileBtn:hover {
+    background: #555;
+  }
+
+  #saveBtn {
+    background: #44662c;
+  }
+  #saveBtn:hover {
+    background: #218838;
+  }
+
+  /* New — Download button color */
+  #downloadPageBtn {
+    background: #555;
+  }
+  #downloadPageBtn:hover {
+    background: #666;
+  }
+
+  .small {
+    font-size: 12px;
+    color: #aaa;
+  }
+
+  #status {
+    margin-top: 6px;
+    font-size: 12px;
+  }
+  .status-ok { color: #6cff6c; }
+  .status-err { color: #ff6c6c; }
+
+  pre.example {
+    background: #111;
+    border: 1px solid #333;
+    padding: 8px;
+    font-size: 12px;
+    max-height: 120px;
+    overflow: auto;
+    border-radius: 4px;
+  }
+
+</style>
+</head>
+<body>
+
+<h2>Rdio Scanner – Units/Alias JSON Editor</h2>
+<p class="version-text">rdioscanner v6.6.3</p>
+<ul style="margin-top:4px; margin-bottom:18px; color:#aaa; font-size:11px; line-height:1.35;">
+  <li>Export full config from the rdio-scanner admin page</li>
+  <li style="margin-left:20px;">Go to <strong>Tools → Import/Export Config</strong></li>
+  <li style="margin-left:20px;">Click <strong>Export</strong> to download your config JSON</li>
+  <li style="margin-left:20px;">
+  <strong style="background:#333; padding:2px 4px; border-radius:3px; color:#ffd24c;">
+    Make a duplicate of the file as a backup before editing
+  </strong>
+  </li>
+  <li style="margin-left:20px;">Use the duplicate JSON file for <strong>Step 1</strong></li>
+</ul>
+
+<div class="row">
+
+  <!-- LEFT PANEL -->
+  <div class="col">
+    <h3>
+      <i class="fa-solid fa-file-code" style="color:#ff8547; margin-right:6px;"></i>
+      <span style="color:#ff8547;">Step 1</span> — Load FULL rdio-scanner JSON
+    </h3>
+
+    <p class="small">
+      Paste the full exported JSON below, or click <strong>Open JSON File…</strong>.
+    </p>
+
+    <textarea id="jsonInput" placeholder="Paste full JSON here..."></textarea>
+
+    <button id="loadSystemsBtn"><i class="fa-solid fa-download"></i> Load Pasted Data</button>
+    <button id="openFileBtn"><i class="fa-solid fa-folder-open"></i> Open JSON File…</button>
+    <input type="file" id="fileInput" accept=".json,application/json" style="display:none" />
+
+    <div id="status"></div>
+
+    <h3 style="margin-top:20px;">
+      <i class="fa-solid fa-sitemap" style="color:#ff8547; margin-right:6px;"></i>
+      <span style="color:#ff8547;">Step 2</span> — Choose System to Edit
+    </h3>
+
+    <select id="systemSelect" disabled>
+      <option value="">(Load JSON first)</option>
+    </select>
+    <div id="systemInfo" class="small"></div>
+  </div>
+
+  <!-- MIDDLE PANEL -->
+  <div class="col">
+    <h3 style="margin-top:20px;">
+      <i class="fa-solid fa-pen-to-square" style="color:#ff8547; margin-right:6px;"></i>
+      <span style="color:#ff8547;">Step 3</span> — Paste Units for Selected System
+    </h3>
+
+    <p class="small">Format: <code>ID ALIAS</code> (ID first, then spaces/tabs, then alias). Paste right from Excel.</p>
+
+    <pre class="example">
+1234567   SQUAD 01
+3658456   RADIO 02
+7464583   DISPATCH 03
+    </pre>
+
+    <textarea id="unitsInput" placeholder="1234567   SQUAD 01&#10;3658456   RADIO 02"></textarea>
+
+    <button id="replaceUnitsBtn" disabled>
+      <i class="fa-solid fa-arrows-rotate"></i> Merge Units Into Selected System
+    </button>
+  </div>
+
+  <!-- RIGHT PANEL -->
+  <div class="col">
+
+    <h3 style="margin-top:20px;">
+      <i class="fa-solid fa-file-lines" style="color:#ff8547; margin-right:6px;"></i>
+      <span style="color:#ff8547;">Step 3.5</span> — Extract Units → Excel
+    </h3>
+
+    <button id="extractUnitsBtn" disabled>
+      <i class="fa-solid fa-scissors"></i> Extract Units for Selected System
+    </button>
+
+    <textarea id="unitsExtractOutput" readonly placeholder="Units will appear here..."></textarea>
+
+    <h3 style="margin-top:25px;">
+      <i class="fa-solid fa-floppy-disk" style="color:#ff8547; margin-right:6px;"></i>
+      <span style="color:#ff8547;">Step 4</span> — Save Updated JSON
+    </h3>
+
+    <button id="saveBtn" disabled>
+      <i class="fa-solid fa-file-export"></i> Save JSON File
+    </button>
+
+    <p class="small">
+      This saves the full JSON with your updated <code>units[]</code> block.
+    </p>
+
+    <textarea id="jsonOutput" readonly placeholder="Updated JSON will appear here..."></textarea>
+  </div>
+
+</div>
+
+<!-- === NEW DOWNLOAD PAGE BUTTON === -->
+<div style="margin-top:40px; text-align:center;">
+  <button id="downloadPageBtn">
+    <i class="fa-solid fa-floppy-disk"></i> Download Site
+  </button>
+</div>
+
+
+<!-- SCRIPT SECTION -->
+<script>
+  let currentJson = null;
+  let systemsArray = null;
+
+  const jsonInputEl = document.getElementById('jsonInput');
+  const loadSystemsBtn = document.getElementById('loadSystemsBtn');
+  const openFileBtn = document.getElementById('openFileBtn');
+  const fileInputEl = document.getElementById('fileInput');
+  const systemSelectEl = document.getElementById('systemSelect');
+  const systemInfoEl = document.getElementById('systemInfo');
+  const statusEl = document.getElementById('status');
+  const unitsInputEl = document.getElementById('unitsInput');
+  const replaceUnitsBtn = document.getElementById('replaceUnitsBtn');
+  const jsonOutputEl = document.getElementById('jsonOutput');
+  const saveBtn = document.getElementById('saveBtn');
+
+  const extractUnitsBtn = document.getElementById('extractUnitsBtn');
+  const unitsExtractOutput = document.getElementById('unitsExtractOutput');
+
+  function setStatus(msg, ok = true) {
+    statusEl.textContent = msg;
+    statusEl.className = ok ? 'status-ok' : 'status-err';
+  }
+
+  function processJsonText(raw, label) {
+    raw = raw.trim();
+    if (!raw) return setStatus(`No ${label} content.`, false);
+
+    try {
+      currentJson = JSON.parse(raw);
+    } catch (e) {
+      return setStatus(`Invalid ${label} JSON.`, false);
+    }
+
+    if (!Array.isArray(currentJson.systems)) {
+      return setStatus(`JSON missing "systems[]".`, false);
+    }
+
+    systemsArray = currentJson.systems;
+    systemSelectEl.innerHTML = "";
+    systemsArray.forEach((sys, idx) => {
+      const opt = document.createElement("option");
+      opt.value = idx;
+      opt.textContent = `${sys.label || "System"} (id: ${sys.id}, units: ${(sys.units || []).length})`;
+      systemSelectEl.appendChild(opt);
+    });
+
+    systemSelectEl.disabled = false;
+    replaceUnitsBtn.disabled = false;
+    extractUnitsBtn.disabled = false;
+    saveBtn.disabled = true;
+    jsonOutputEl.value = "";
+    unitsExtractOutput.value = "";
+
+    updateSystemInfo();
+    setStatus(`Loaded ${systemsArray.length} systems from ${label}.`);
+  }
+
+  loadSystemsBtn.addEventListener("click", () =>
+    processJsonText(jsonInputEl.value, "textarea"));
+
+  openFileBtn.addEventListener("click", () => fileInputEl.click());
+
+  fileInputEl.addEventListener("change", () => {
+    const file = fileInputEl.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = e => {
+      jsonInputEl.value = e.target.result;
+      processJsonText(e.target.result, `file "${file.name}"`);
+    };
+    reader.readAsText(file);
+  });
+
+  function updateSystemInfo() {
+    const idx = Number(systemSelectEl.value);
+    const sys = systemsArray[idx];
+    systemInfoEl.textContent =
+      `Selected: "${sys.label}" (id: ${sys.id}), units: ${(sys.units || []).length}`;
+  }
+
+  systemSelectEl.addEventListener("change", updateSystemInfo);
+
+  replaceUnitsBtn.addEventListener("click", () => {
+    const idx = Number(systemSelectEl.value);
+    const sys = systemsArray[idx];
+
+    let units = Array.isArray(sys.units) ? sys.units.slice() : [];
+    const byId = new Map(units.map(u => [u.id, u]));
+
+    const lines = unitsInputEl.value.trim().split(/\r?\n/);
+
+    let parsed = 0, updated = 0, added = 0;
+
+    for (let line of lines) {
+      const match = line.trim().match(/^(\d+)\s+(.+)$/);
+      if (!match) continue;
+
+      const id = Number(match[1]);
+      const label = match[2].trim();
+      parsed++;
+
+      if (byId.has(id)) {
+        const item = byId.get(id);
+        if (item.label !== label) {
+          item.label = label;
+          updated++;
+        }
+      } else {
+        const newUnit = { id, label };
+        units.push(newUnit);
+        byId.set(id, newUnit);
+        added++;
+      }
+    }
+
+    units.sort((a, b) => a.id - b.id);
+    units.forEach((u, i) => u.order = i + 1);
+    sys.units = units;
+
+    jsonOutputEl.value = JSON.stringify(currentJson, null, 2);
+    saveBtn.disabled = false;
+
+    setStatus(`Merged ${parsed} units: ${updated} updated, ${added} added.`);
+    updateSystemInfo();
+  });
+
+  extractUnitsBtn.addEventListener("click", () => {
+    const idx = Number(systemSelectEl.value);
+    const sys = systemsArray[idx];
+
+    if (!sys || !Array.isArray(sys.units)) {
+      unitsExtractOutput.value = "";
+      return setStatus("No units found for this system.", false);
+    }
+
+    const lines = sys.units
+      .sort((a, b) => a.id - b.id)
+      .map(u => `${u.id}\t${u.label}`)
+      .join("\n");
+
+    unitsExtractOutput.value = lines;
+
+    setStatus(`Extracted ${sys.units.length} units from "${sys.label}".`);
+  });
+
+  function timestamp() {
+    const d = new Date();
+    const pad = x => String(x).padStart(2, "0");
+    return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}_${pad(d.getHours())}-${pad(d.getMinutes())}-${pad(d.getSeconds())}`;
+  }
+
+  saveBtn.addEventListener("click", () => {
+    const text = jsonOutputEl.value.trim();
+    if (!text) return setStatus("Nothing to save.", false);
+
+    const blob = new Blob([text], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `rdio-scanner-updated-${timestamp()}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+
+    URL.revokeObjectURL(url);
+    setStatus("Saved updated JSON file.");
+  });
+
+  /* =======================================
+     NEW — DOWNLOAD ENTIRE PAGE AS HTML FILE
+     ======================================= */
+  document.getElementById("downloadPageBtn").addEventListener("click", () => {
+    const fullHtml = "<!DOCTYPE html>\n" + document.documentElement.outerHTML;
+
+    const blob = new Blob([fullHtml], { type: "text/html" });
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "rdio_scanner_json_edit.html";
+    document.body.appendChild(a);
+    a.click();
+
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  });
+
+</script>
+
+</body>
+</html>
